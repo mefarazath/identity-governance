@@ -24,6 +24,9 @@ public class IdentityRecoveryConstants {
 
     public static final String IDENTITY_MANAGEMENT_PATH = "/repository/components/org.wso2.carbon.identity.mgt";
     public static final String IDENTITY_MANAGEMENT_QUESTIONS = IDENTITY_MANAGEMENT_PATH + "/questionCollection";
+    public static final String IDENTITY_MANAGEMENT_I18N_PATH = "/repository/components/identity";
+    public static final String IDENTITY_I18N_QUESTIONS =
+            IDENTITY_MANAGEMENT_I18N_PATH + "/questionCollection";
     public static final String LINE_SEPARATOR = "!";
     public static final String CHALLENGE_QUESTION_URI = "http://wso2.org/claims/challengeQuestionUris";
     public static final String NOTIFICATION_TYPE_PASSWORD_RESET = "passwordreset";
@@ -35,6 +38,9 @@ public class IdentityRecoveryConstants {
     public static final String TEMPLATE_TYPE = "TEMPLATE_TYPE";
     public static final String CONFIRMATION_CODE = "confirmation-code";
     public static final String WSO2CARBON_CLAIM_DIALECT = "http://wso2.org/claims";
+
+    public static final String LOCALE_EN_US = "en_US";
+    public static final String LOCALE_LK_LK = "lk_lk";
 
 
     private IdentityRecoveryConstants() {
@@ -69,9 +75,7 @@ public class IdentityRecoveryConstants {
         ERROR_CODE_NO_USER_FOUND_FOR_RECOVERY("20015", "No valid user found"),
         ERROR_CODE_ISSUE_IN_LOADING_RECOVERY_CONFIGS("20016", "Error loading recovery configs"),
         ERROR_CODE_PASSWORD_BASED_RECOVERY_NOT_ENABLE("20017", "Notification based recovery is not enabled"),
-        ERROR_CODE_QUESTION_BASED_RECOVERY_NOT_ENABLE("20017", "Security questions based recovery is not enabled"),
-
-        ;
+        ERROR_CODE_QUESTION_BASED_RECOVERY_NOT_ENABLE("20017", "Security questions based recovery is not enabled"),;
 
 
         private final String code;
@@ -120,6 +124,31 @@ public class IdentityRecoveryConstants {
 
         public static final String INVALIDATE_USER_CODES = "DELETE FROM IDN_RECOVERY_DATA WHERE USER_NAME = ? AND " +
                 "USER_DOMAIN = ? AND TENANT_ID =?";
+
+    }
+
+    public static class Questions {
+
+        public static final String LOCALE_CLAIM = "http://wso2.org/claims/locality";
+
+        public static final String CHALLENGE_QUESTION_SET_ID = "questionSetId";
+        public static final String CHALLENGE_QUESTION_ID = "questionId";
+        public static final String CHALLENGE_QUESTION_LOCALE = "locale";
+
+
+        // TODO remove this
+        public static String[] SECRET_QUESTIONS_SET01 = new String[]{"City where you were born ?",
+                "Father's middle name ?", "Favorite food ?", "Favorite vacation location ?"};
+
+
+        public static String[] SECRET_QUESTIONS_SET01_SIN = new String[]{"ඔබ ඉපදුනු  නගරය?",
+                "පියාගේ මැද නම?",
+                "ප්‍රියතම කෑම?",
+                "නිවාඩුව ගත කිරීමට කැමතිම ස්ථානය?"};
+
+        // TODO remove this
+        public static String[] SECRET_QUESTIONS_SET02 = new String[]{"Model of your first car ?",
+                "Name of the hospital where you were born ?", "Name of your first pet ?", "Favorite sport ?"};
 
     }
 }

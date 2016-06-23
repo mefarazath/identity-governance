@@ -16,19 +16,24 @@
 
 package org.wso2.carbon.identity.recovery.internal;
 
+import org.wso2.carbon.identity.core.persistence.registry.RegistryResourceMgtService;
 import org.wso2.carbon.identity.event.services.EventMgtService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.idp.mgt.IdpManager;
+import org.wso2.carbon.registry.core.service.RegistryService;
+import org.wso2.carbon.user.core.service.RealmService;
 
 public class IdentityRecoveryServiceDataHolder {
 
     private static IdentityRecoveryServiceDataHolder instance = new IdentityRecoveryServiceDataHolder();
+    private RealmService realmService;
+    private RegistryService registryService;
     private EventMgtService eventMgtService;
     private IdentityGovernanceService identityGovernanceService;
     private IdpManager idpManager;
+    private RegistryResourceMgtService resourceMgtService;
 
     public static IdentityRecoveryServiceDataHolder getInstance() {
-
         return instance;
     }
 
@@ -54,5 +59,29 @@ public class IdentityRecoveryServiceDataHolder {
 
     public void setIdentityGovernanceService(IdentityGovernanceService identityGovernanceService) {
         this.identityGovernanceService = identityGovernanceService;
+    }
+
+    public RegistryResourceMgtService getResourceMgtService() {
+        return resourceMgtService;
+    }
+
+    public void setResourceMgtService(RegistryResourceMgtService resourceMgtService) {
+        this.resourceMgtService = resourceMgtService;
+    }
+
+    public RealmService getRealmService() {
+        return realmService;
+    }
+
+    public void setRealmService(RealmService realmService) {
+        this.realmService = realmService;
+    }
+
+    public RegistryService getRegistryService() {
+        return registryService;
+    }
+
+    public void setRegistryService(RegistryService registryService) {
+        this.registryService = registryService;
     }
 }

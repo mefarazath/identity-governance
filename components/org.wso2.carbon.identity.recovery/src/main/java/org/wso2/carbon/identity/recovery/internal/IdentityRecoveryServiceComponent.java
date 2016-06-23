@@ -20,15 +20,21 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
+import org.wso2.carbon.identity.core.persistence.registry.RegistryResourceMgtService;
 import org.wso2.carbon.identity.event.services.EventMgtService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.governance.common.IdentityGovernanceConnector;
+import org.wso2.carbon.identity.recovery.ChallengeQuestionManager;
+import org.wso2.carbon.identity.recovery.IdentityRecoveryException;
 import org.wso2.carbon.identity.recovery.connector.RecoveryConnectorImpl;
+import org.wso2.carbon.identity.recovery.listener.TenantManagementListener;
 import org.wso2.carbon.identity.recovery.password.NotificationPasswordRecoveryManager;
 import org.wso2.carbon.identity.recovery.password.SecurityQuestionPasswordRecoveryManager;
 import org.wso2.carbon.identity.recovery.username.NotificationUsernameRecoveryManager;
 import org.wso2.carbon.registry.core.service.RegistryService;
+import org.wso2.carbon.stratos.common.listeners.TenantMgtListener;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 
 /**
@@ -45,21 +51,17 @@ import org.wso2.carbon.user.core.service.RealmService;
  * @scr.reference name="EventMgtService"
  * interface="org.wso2.carbon.identity.event.services.EventMgtService" cardinality="1..1"
  * policy="dynamic" bind="setEventMgtService" unbind="unsetEventMgtService"
+ * @scr.reference name="RegistryResourceMgtService"
+ * interface="org.wso2.carbon.identity.core.persistence.registry.RegistryResourceMgtService" cardinality="1..1"
+ * policy="dynamic" bind="setResourceMgtService" unbind="unsetResourceMgtService"
  */
 public class IdentityRecoveryServiceComponent {
 
     private static Log log = LogFactory.getLog(IdentityRecoveryServiceComponent.class);
-    private static RealmService realmService;
-    private static RegistryService registryService;
-
 
     protected void activate(ComponentContext context) {
 
         try {
-
-            if (log.isDebugEnabled()) {
-                log.debug("Identity Management Listener is enabled");
-            }
             BundleContext bundleContext = context.getBundleContext();
             bundleContext.registerService(NotificationPasswordRecoveryManager.class.getName(),
                     new NotificationPasswordRecoveryManager(), null);
@@ -73,24 +75,21 @@ public class IdentityRecoveryServiceComponent {
         } catch (Exception e) {
             log.error("Error while activating identity governance component.", e);
         }
-    }
 
-    public static RealmService getRealmService() {
-        return realmService;
-    }
+        // register the tenant management listener
+        TenantMgtListener tenantMgtListener = new TenantManagementListener();
+        context.getBundleContext().registerService(TenantMgtListener.class.getName(), tenantMgtListener, null);
 
-    protected void setRealmService(RealmService realmService) {
-        log.debug("Setting the Realm Service");
-        IdentityRecoveryServiceComponent.realmService = realmService;
-    }
-
-    public static RegistryService getRegistryService() {
-        return registryService;
-    }
-
-    protected void setRegistryService(RegistryService registryService) {
-        log.debug("Setting the Registry Service");
-        IdentityRecoveryServiceComponent.registryService = registryService;
+        // register default challenge questions
+        try {
+            if (log.isDebugEnabled()) {
+                log.debug("Loading default challenge questions for super tenant.");
+            }
+            loadDefaultChallengeQuestions();
+         //   new ChallengeQuestionManager().getAllChallengeQuestions("carbon.super", "lk_LK");
+        } catch (IdentityRecoveryException e) {
+            log.error("Error persisting challenge question for super tenant.", e);
+        }
     }
 
     protected void deactivate(ComponentContext context) {
@@ -99,14 +98,28 @@ public class IdentityRecoveryServiceComponent {
         }
     }
 
+    protected void setRealmService(RealmService realmService) {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting the Realm Service");
+        }
+        IdentityRecoveryServiceDataHolder.getInstance().setRealmService(realmService);
+    }
+
+    protected void setRegistryService(RegistryService registryService) {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting the Registry Service");
+        }
+        IdentityRecoveryServiceDataHolder.getInstance().setRegistryService(registryService);
+    }
+
     protected void unsetRealmService(RealmService realmService) {
         log.debug("UnSetting the Realm Service");
-        IdentityRecoveryServiceComponent.realmService = null;
+        IdentityRecoveryServiceDataHolder.getInstance().setRealmService(null);
     }
 
     protected void unsetRegistryService(RegistryService registryService) {
         log.debug("UnSetting the Registry Service");
-        IdentityRecoveryServiceComponent.registryService = null;
+        IdentityRecoveryServiceDataHolder.getInstance().setRegistryService(null);
     }
 
     protected void unsetEventMgtService(EventMgtService eventMgtService) {
@@ -123,6 +136,25 @@ public class IdentityRecoveryServiceComponent {
 
     protected void setIdentityGovernanceService(IdentityGovernanceService idpManager) {
         IdentityRecoveryServiceDataHolder.getInstance().setIdentityGovernanceService(idpManager);
+    }
+
+    protected void unsetResourceMgtService(RegistryResourceMgtService registryResourceMgtService) {
+        IdentityRecoveryServiceDataHolder.getInstance().setResourceMgtService(null);
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Identity Resource Mgt service.");
+        }
+    }
+
+    protected void setResourceMgtService(RegistryResourceMgtService registryResourceMgtService) {
+        IdentityRecoveryServiceDataHolder.getInstance().setResourceMgtService(registryResourceMgtService);
+        if (log.isDebugEnabled()) {
+            log.debug("Unsetting Identity Resource Mgt service.");
+        }
+    }
+
+    private void loadDefaultChallengeQuestions() throws IdentityRecoveryException {
+        String tenantDomain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+        new ChallengeQuestionManager().setDefaultChallengeQuestions(tenantDomain);
     }
 
 

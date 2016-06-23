@@ -27,12 +27,22 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>org.wso2.carbon.identity.recovery</artifactId>
     <packaging>bundle</packaging>
-    <name>WSO2 Carbon - Identity Management</name>
+    <name>WSO2 Carbon - Identity Recovery Management</name>
 
     <dependencies>
         <dependency>
             <groupId>org.wso2.carbon.identity</groupId>
             <artifactId>org.wso2.carbon.identity.event</artifactId>
+            <version>${carbon.identity.framework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity</groupId>
+            <artifactId>org.wso2.carbon.identity.mgt</artifactId>
+            <version>${carbon.identity.framework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity</groupId>
+            <artifactId>org.wso2.carbon.identity.core</artifactId>
             <version>${carbon.identity.framework.version}</version>
         </dependency>
         <dependency>
@@ -67,12 +77,13 @@
                             org.wso2.carbon.identity.recovery.internal
                         </Private-Package>
                         <Export-Package>
-                            org.wso2.carbon.identity.recovery.*,
+                            org.wso2.carbon.identity.recovery.*; version="${identity.governance.exp.pkg.version}",
                             !org.wso2.carbon.identity.recovery.internal
                         </Export-Package>
                         <Import-Package>
                             org.osgi.framework; version="${osgi.framework.imp.pkg.version.range}",
                             org.osgi.service.component; version="${osgi.service.component.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.core;version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.idp.mgt;version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.governance;version="${identity.governance.imp.pkg.version.range}"
                         </Import-Package>

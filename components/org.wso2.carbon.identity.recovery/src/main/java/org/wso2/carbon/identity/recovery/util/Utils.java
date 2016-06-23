@@ -12,17 +12,20 @@ import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.recovery.IdentityRecoveryClientException;
 import org.wso2.carbon.identity.recovery.IdentityRecoveryConstants;
-import org.wso2.carbon.identity.recovery.IdentityRecoveryException;
 import org.wso2.carbon.identity.recovery.IdentityRecoveryServerException;
 import org.wso2.carbon.identity.recovery.internal.IdentityRecoveryServiceComponent;
 import org.wso2.carbon.identity.recovery.internal.IdentityRecoveryServiceDataHolder;
+import org.wso2.carbon.identity.recovery.model.ChallengeQuestion;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Utils {
@@ -33,7 +36,7 @@ public class Utils {
 
         String userStoreQualifiedUsername = IdentityUtil.addDomainToName(user.getUserName(), user.getUserStoreDomain());
         org.wso2.carbon.user.core.UserStoreManager userStoreManager = null;
-        RealmService realmService = IdentityRecoveryServiceComponent.getRealmService();
+        RealmService realmService = IdentityRecoveryServiceDataHolder.getInstance().getRealmService();
         String claimValue = "";
 
         int tenantId = IdentityTenantUtil.getTenantId(user.getTenantDomain());
@@ -164,7 +167,7 @@ public class Utils {
         int tenantId = IdentityTenantUtil.getTenantId(user.getTenantDomain());
 
         org.wso2.carbon.user.core.UserStoreManager userStoreManager = null;
-        RealmService realmService = IdentityRecoveryServiceComponent.getRealmService();
+        RealmService realmService = IdentityRecoveryServiceDataHolder.getInstance().getRealmService();
         if (realmService.getTenantUserRealm(tenantId) != null) {
             userStoreManager = (org.wso2.carbon.user.core.UserStoreManager) realmService.getTenantUserRealm(tenantId).
                     getUserStoreManager();
@@ -193,4 +196,54 @@ public class Utils {
             throw Utils.handleServerException(IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_ISSUE_IN_LOADING_RECOVERY_CONFIGS, null, e);
         }
     }
+
+
+    // challenge question related Utils
+    public static String getChallengeSetDirFromUri(String challengeSetUri) {
+        if (StringUtils.isBlank(challengeSetUri)) {
+            return challengeSetUri;
+        }
+
+        int index = challengeSetUri.lastIndexOf("/");
+        return challengeSetUri.substring(index + 1);
+    }
+
+    public static ChallengeQuestion[] getDefaultChallengeQuestions() {
+        List<ChallengeQuestion> challengeQuestions = new ArrayList<>();
+        // locale en_US, challengeSet1
+        int count = 0;
+        for (String question : IdentityRecoveryConstants.Questions.SECRET_QUESTIONS_SET01) {
+            String setId = IdentityRecoveryConstants.WSO2CARBON_CLAIM_DIALECT + "/" + "challengeQuestion1";
+            String questionId = "question" + (++count);
+            challengeQuestions.add(
+                    new ChallengeQuestion(setId, questionId, question, IdentityRecoveryConstants.LOCALE_EN_US));
+        }
+
+        count = 0;
+        for (String question : IdentityRecoveryConstants.Questions.SECRET_QUESTIONS_SET01_SIN) {
+            String setId = IdentityRecoveryConstants.WSO2CARBON_CLAIM_DIALECT + "/" + "challengeQuestion2";
+            String questionId = "question" + (++count);
+            challengeQuestions.add(
+                    new ChallengeQuestion(setId, questionId, question, IdentityRecoveryConstants.LOCALE_LK_LK));
+        }
+
+        count = 0;
+        for (String question : IdentityRecoveryConstants.Questions.SECRET_QUESTIONS_SET02) {
+            String setId = IdentityRecoveryConstants.WSO2CARBON_CLAIM_DIALECT + "/" + "challengeQuestion2";
+            String questionId = "question" + (++count);
+            challengeQuestions.add(
+                    new ChallengeQuestion(setId, questionId, question, IdentityRecoveryConstants.LOCALE_EN_US));
+        }
+
+        return challengeQuestions.toArray(new ChallengeQuestion[challengeQuestions.size()]);
+    }
+
+    public static User createUser(String username, String tenantDomain) {
+        User user = new User();
+        user.setUserName(MultitenantUtils.getTenantAwareUsername(username));
+        user.setTenantDomain(tenantDomain);
+
+        return user;
+    }
+
 }
