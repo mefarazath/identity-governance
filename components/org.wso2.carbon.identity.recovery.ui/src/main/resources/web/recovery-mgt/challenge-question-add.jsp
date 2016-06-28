@@ -155,8 +155,8 @@
     session.setAttribute(IdentityManagementAdminClient.CHALLENGE_QUESTION_UPDATE, updatedChallenges);
 
     Collections.sort(challengeURIs);
-    Collections.sort(tempChallenges, Utils.ChallengeQuestionComparator);
-    Collections.sort(challenges, Utils.ChallengeQuestionComparator);
+    Collections.sort(tempChallenges, Utils.questionComparator);
+    Collections.sort(challenges, Utils.questionComparator);
 
     session.setAttribute(IdentityManagementAdminClient.CHALLENGE_QUESTION_SET_TEMP, tempChallenges);
     session.setAttribute(IdentityManagementAdminClient.CHALLENGE_QUESTION, challenges);

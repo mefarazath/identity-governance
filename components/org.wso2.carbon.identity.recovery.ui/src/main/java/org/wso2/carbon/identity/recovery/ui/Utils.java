@@ -28,7 +28,7 @@ public class Utils {
         return languageCode + "_" + countryCode;
     }
 
-    public static Comparator<ChallengeQuestion> ChallengeQuestionComparator = new Comparator<ChallengeQuestion>() {
+    public static Comparator<ChallengeQuestion> questionComparator = new Comparator<ChallengeQuestion>() {
         public int compare(ChallengeQuestion q1, ChallengeQuestion q2) {
             String stringQ1 = q1.getQuestionId() + q1.getLocale();
             String stringQ2 = q2.getQuestionId() + q2.getLocale();

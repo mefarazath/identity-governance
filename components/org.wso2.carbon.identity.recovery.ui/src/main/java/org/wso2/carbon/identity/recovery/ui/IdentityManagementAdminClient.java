@@ -46,7 +46,7 @@ public class IdentityManagementAdminClient {
     public static final String CHALLENGE_QUESTION_SET_TEMP= "challenge.question.set.temp";
 
 
-    protected static Log log = LogFactory.getLog(IdentityManagementAdminClient.class);
+    private static final Log log = LogFactory.getLog(IdentityManagementAdminClient.class);
     protected UserIdentityManagementAdminServiceStub stub = null;
 
     public IdentityManagementAdminClient(String cookie, String url, ConfigurationContext configContext)

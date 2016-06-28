@@ -130,6 +130,7 @@ public class IdentityRecoveryConstants {
     public static class Questions {
 
         public static final String LOCALE_CLAIM = "http://wso2.org/claims/locality";
+        public static final String BLACKLIST_REGEX = ".*[/\\\\].*";
 
         public static final String CHALLENGE_QUESTION_SET_ID = "questionSetId";
         public static final String CHALLENGE_QUESTION_ID = "questionId";
@@ -137,18 +138,19 @@ public class IdentityRecoveryConstants {
 
 
         // TODO remove this
-        public static String[] SECRET_QUESTIONS_SET01 = new String[]{"City where you were born ?",
+        public static final String[] SECRET_QUESTIONS_SET01 = new String[]{"City where you were born ?",
                 "Father's middle name ?", "Favorite food ?", "Favorite vacation location ?"};
 
 
-        public static String[] SECRET_QUESTIONS_SET01_SIN = new String[]{"ඔබ ඉපදුනු  නගරය?",
+        public static final String[] SECRET_QUESTIONS_SET01_SIN = new String[]{"ඔබ ඉපදුනු නගරය?",
                 "පියාගේ මැද නම?",
                 "ප්‍රියතම කෑම?",
                 "නිවාඩුව ගත කිරීමට කැමතිම ස්ථානය?"};
 
         // TODO remove this
-        public static String[] SECRET_QUESTIONS_SET02 = new String[]{"Model of your first car ?",
+        public static final String[] SECRET_QUESTIONS_SET02 = new String[]{"Model of your first car ?",
                 "Name of the hospital where you were born ?", "Name of your first pet ?", "Favorite sport ?"};
+
 
     }
 }

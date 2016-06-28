@@ -146,7 +146,7 @@
     session.setAttribute(IdentityManagementAdminClient.CHALLENGE_QUESTION_DELETE, deletedChallenges);
     session.setAttribute(IdentityManagementAdminClient.CHALLENGE_QUESTION_UPDATE, updatedChallenges);
 
-    Collections.sort(challenges, Utils.ChallengeQuestionComparator);
+    Collections.sort(challenges, Utils.questionComparator);
     session.setAttribute(IdentityManagementAdminClient.CHALLENGE_QUESTION, challenges);
 %>
 

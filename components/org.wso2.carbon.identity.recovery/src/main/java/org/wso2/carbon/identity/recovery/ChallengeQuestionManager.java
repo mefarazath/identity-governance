@@ -150,8 +150,6 @@ public class ChallengeQuestionManager {
     public void setDefaultChallengeQuestions(String tenantDomain) throws IdentityRecoveryException {
 
         tenantDomain = validateTenantDomain(tenantDomain);
-        Resource questionCollection = resourceMgtService.getIdentityResource
-                (QUESTIONS_BASE_PATH, tenantDomain);
 
         // check whether we already have default questions.
         boolean isDefaultAvailable = !getAllChallengeQuestions(tenantDomain).isEmpty();
@@ -160,7 +158,6 @@ public class ChallengeQuestionManager {
                 log.debug("Default Challenge Questions already available.");
             }
             return;
-           // resourceMgtService.deleteIdentityResource(QUESTIONS_BASE_PATH, tenantDomain);
         }
 
         ChallengeQuestion[] questions = Utils.getDefaultChallengeQuestions();
@@ -198,7 +195,7 @@ public class ChallengeQuestionManager {
                 validateChallengeQuestionAttributes(challengeQuestion);
 
                 String questionPath = getQuestionPath(challengeQuestion);
-                String locale = challengeQuestion.getLocale();
+                String locale = validateLocale(challengeQuestion.getLocale());
 
                 // create a registry resource
                 Resource resource = createRegistryResource(challengeQuestion);
@@ -214,7 +211,7 @@ public class ChallengeQuestionManager {
 
 
     public void deleteChallengeQuestions(ChallengeQuestion[] challengeQuestions, String tenantDomain)
-            throws IdentityRecoveryException{
+            throws IdentityRecoveryException {
         try {
             tenantDomain = validateTenantDomain(tenantDomain);
 
@@ -226,7 +223,7 @@ public class ChallengeQuestionManager {
                 }
             }
         } catch (IdentityRuntimeException e) {
-            log.error("Error deleting challenge quesitons in " + tenantDomain );
+            log.error("Error deleting challenge quesitons in " + tenantDomain);
             throw new IdentityRecoveryException("Error when deleting challenge questions.", e);
         }
     }
@@ -554,7 +551,7 @@ public class ChallengeQuestionManager {
             throws IdentityRecoveryClientException {
         validateChallengeQuestionAttributes(challengeQuestion);
 
-        String locale = challengeQuestion.getLocale();
+        String locale = validateLocale(challengeQuestion.getLocale());
         String questionPath = getQuestionPath(challengeQuestion);
 
         return (resourceMgtService.getIdentityResource(questionPath, tenantDomain, locale) != null);
@@ -702,9 +699,20 @@ public class ChallengeQuestionManager {
         return StringUtils.isBlank(tenantDomain) ? MultitenantConstants.SUPER_TENANT_DOMAIN_NAME : tenantDomain;
     }
 
-    private String validateLocale(String locale) {
-        // TODO validate whether a valid locale
-        return StringUtils.isBlank(locale) ? IdentityRecoveryConstants.LOCALE_EN_US : locale;
+    private String validateLocale(String locale) throws IdentityRecoveryClientException {
+        // if the locale is blank, we go with the default locale
+        if (StringUtils.isBlank(locale)) {
+            locale = IdentityRecoveryConstants.LOCALE_EN_US;
+        }
+
+        // validate locale input string
+        if (locale.matches(IdentityRecoveryConstants.Questions.BLACKLIST_REGEX)) {
+            log.error("Invalid locale value provided : " + locale);
+            throw new IdentityRecoveryClientException("Invalid Locale value provided : " + locale);
+        }
+
+        return locale;
+
     }
 
     private void validateUser(User user) throws IdentityRecoveryClientException {
@@ -714,16 +722,28 @@ public class ChallengeQuestionManager {
         }
     }
 
-    private void validateChallengeQuestionAttributes(ChallengeQuestion challengeQuestion) throws IdentityRecoveryClientException {
-        // TODO validate for path traversal
-        if (StringUtils.isBlank(challengeQuestion.getQuestion()) ||
-                StringUtils.isBlank(challengeQuestion.getLocale()) ||
-                StringUtils.isBlank(challengeQuestion.getQuestionId()) ||
-                StringUtils.isBlank(challengeQuestion.getQuestionSetId())) {
+    private void validateChallengeQuestionAttributes(ChallengeQuestion question) throws IdentityRecoveryClientException {
+
+        String setId = question.getQuestionSetId();
+        String questionId = question.getQuestionId();
+        String questionText = question.getQuestion();
+        String questionLocale = question.getLocale();
+
+        if (StringUtils.isBlank(setId) || StringUtils.isBlank(questionId) || StringUtils.isBlank(questionText) ||
+                StringUtils.isBlank(questionLocale)) {
             throw new IdentityRecoveryClientException
-                    ("Invalid. Attributes of Challenge question to be set cannot be null.");
+                    ("Invalid Challenge Question. Attributes of Challenge question to be set cannot be empty.");
         }
 
+
+        String errorMsg = "%s contains invalid special characters.";
+        if (setId.matches(IdentityRecoveryConstants.Questions.BLACKLIST_REGEX)) {
+            throw new IdentityRecoveryClientException(String.format(errorMsg, "ChallengeSetId"));
+        }
+
+        if (questionId.matches(IdentityRecoveryConstants.Questions.BLACKLIST_REGEX)) {
+            throw new IdentityRecoveryClientException(String.format(errorMsg, "QuestionId"));
+        }
     }
 
 

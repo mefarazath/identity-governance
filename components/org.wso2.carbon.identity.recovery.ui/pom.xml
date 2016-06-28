@@ -16,7 +16,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apagit he.axis2.wso2</groupId>
+            <groupId>org.apache.axis2.wso2</groupId>
             <artifactId>axis2</artifactId>
         </dependency>
         <dependency>
