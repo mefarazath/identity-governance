@@ -30,14 +30,12 @@ import org.wso2.carbon.identity.recovery.IdentityRecoveryClientException;
 import org.wso2.carbon.identity.recovery.IdentityRecoveryConstants;
 import org.wso2.carbon.identity.recovery.IdentityRecoveryException;
 import org.wso2.carbon.identity.recovery.IdentityRecoveryServerException;
-import org.wso2.carbon.identity.recovery.internal.IdentityRecoveryServiceComponent;
 import org.wso2.carbon.identity.recovery.internal.IdentityRecoveryServiceDataHolder;
 import org.wso2.carbon.identity.recovery.model.ChallengeQuestion;
 import org.wso2.carbon.identity.recovery.model.UserChallengeAnswer;
 import org.wso2.carbon.identity.recovery.util.Utils;
 import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserStoreException;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.util.List;
 
@@ -53,6 +51,20 @@ public class UserIdentityManagementAdminService {
     private static Log log = LogFactory.getLog(UserIdentityManagementAdminService.class);
 
 
+    public ChallengeQuestion[] getChallengeQuestionsOfTenant(String tenantDomain) throws IdentityRecoveryException {
+        ChallengeQuestionManager questionManager = new ChallengeQuestionManager();
+        List<ChallengeQuestion> challengeQuestionList;
+
+        try {
+            challengeQuestionList = questionManager.getAllChallengeQuestions(tenantDomain);
+            return challengeQuestionList.toArray(new ChallengeQuestion[challengeQuestionList.size()]);
+        } catch (IdentityRecoveryException e) {
+            String errorMgs = "Error loading challenge questions for tenant : %s.";
+            log.error(String.format(errorMgs, tenantDomain), e);
+            throw new IdentityRecoveryException(String.format(errorMgs, tenantDomain), e);
+        }
+    }
+
     /**
      * Get all tenant questions of a locale in a tenant domain
      *
@@ -61,16 +73,20 @@ public class UserIdentityManagementAdminService {
      * @throws IdentityRecoveryServerException
      */
     public ChallengeQuestion[] getChallengeQuestionsForUser(String tenantAwareUserName)
-            throws IdentityRecoveryServerException {
+            throws IdentityRecoveryException {
 
         String tenantDomain = CarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-        String locale = getLocaleOfUser(tenantAwareUserName, tenantDomain);
 
+        ChallengeQuestionManager questionManager = new ChallengeQuestionManager();
+        List<ChallengeQuestion> challengeQuestionList;
         try {
-            return getChallengeQuestionsForLocale(tenantDomain, locale);
+            String locale = getLocaleOfUser(tenantAwareUserName, tenantDomain);
+            challengeQuestionList = questionManager.getAllChallengeQuestions(tenantDomain, locale);
+            return challengeQuestionList.toArray(new ChallengeQuestion[challengeQuestionList.size()]);
         } catch (IdentityRecoveryException e) {
             String errorMgs = "Error loading challenge questions for user : %s@%s.";
-            throw new IdentityRecoveryServerException(String.format(errorMgs, tenantAwareUserName, tenantDomain), e);
+            log.error(String.format(errorMgs, tenantAwareUserName, tenantDomain), e);
+            throw new IdentityRecoveryException(String.format(errorMgs, tenantAwareUserName, tenantDomain), e);
         }
     }
 
@@ -84,7 +100,7 @@ public class UserIdentityManagementAdminService {
      * @throws IdentityRecoveryServerException
      */
     public ChallengeQuestion[] getChallengeQuestionsForLocale(String tenantDomain, String locale)
-            throws IdentityRecoveryServerException {
+            throws IdentityRecoveryException {
 
         ChallengeQuestionManager questionManager = new ChallengeQuestionManager();
         List<ChallengeQuestion> challengeQuestionList;
@@ -95,7 +111,8 @@ public class UserIdentityManagementAdminService {
         } catch (IdentityRecoveryException e) {
             String errorMgs = String.format("Error loading challenge questions for tenant %s in %s locale.",
                     tenantDomain, locale);
-            throw new IdentityRecoveryServerException(errorMgs, e);
+            log.error(errorMgs, e);
+            throw new IdentityRecoveryException(errorMgs, e);
         }
     }
 
@@ -107,15 +124,35 @@ public class UserIdentityManagementAdminService {
      * @param tenantDomain
      * @throws IdentityRecoveryException
      */
-    public void setChallengeQuestions(ChallengeQuestion[] challengeQuestions, String tenantDomain)
+    public void setChallengeQuestionsOfTenant(ChallengeQuestion[] challengeQuestions, String tenantDomain)
             throws IdentityRecoveryException {
         try {
             ChallengeQuestionManager questionManager = new ChallengeQuestionManager();
             questionManager.addChallengeQuestions(challengeQuestions, tenantDomain);
         } catch (IdentityRecoveryException e) {
             String errorMsg = "Error setting challenge questions for tenant domain %s.";
-            log.error(String.format(errorMsg, tenantDomain));
-            throw new IdentityRecoveryServerException(String.format(errorMsg, tenantDomain), e);
+            log.error(String.format(errorMsg, tenantDomain), e);
+            throw new IdentityRecoveryException(String.format(errorMsg, tenantDomain), e);
+        }
+    }
+
+
+    /**
+     * Set challenge questions for a tenant domain
+     *
+     * @param challengeQuestions
+     * @param tenantDomain
+     * @throws IdentityRecoveryException
+     */
+    public void deleteChallengeQuestionsOfTenant(ChallengeQuestion[] challengeQuestions, String tenantDomain)
+            throws IdentityRecoveryException {
+        try {
+            ChallengeQuestionManager questionManager = new ChallengeQuestionManager();
+            questionManager.deleteChallengeQuestions(challengeQuestions, tenantDomain);
+        } catch (IdentityRecoveryException e) {
+            String errorMsg = "Error deleting challenge questions in tenant domain %s.";
+            log.error(String.format(errorMsg, tenantDomain), e);
+            throw new IdentityRecoveryException(String.format(errorMsg, tenantDomain), e);
         }
     }
 
@@ -157,8 +194,8 @@ public class UserIdentityManagementAdminService {
 
         } catch (IdentityException e) {
             String errorMessage = "Error while persisting user challenges for user : " + tenantAwareUserName;
-            log.error(errorMessage);
-            throw new IdentityRecoveryServerException(errorMessage, e);
+            log.error(errorMessage, e);
+            throw new IdentityRecoveryException(errorMessage, e);
         }
     }
 
@@ -186,9 +223,15 @@ public class UserIdentityManagementAdminService {
             tenantAwareUserName = loggedInName;
         }
 
-        User user = Utils.createUser(tenantAwareUserName, tenantDomain);
-        ChallengeQuestionManager processor = new ChallengeQuestionManager();
-        return processor.getChallengeAnswersOfUser(user);
+        try {
+            User user = Utils.createUser(tenantAwareUserName, tenantDomain);
+            ChallengeQuestionManager processor = new ChallengeQuestionManager();
+            return processor.getChallengeAnswersOfUser(user);
+        } catch (IdentityRecoveryException e) {
+            String msg = "Error retrieving user challenge answers for " + tenantAwareUserName;
+            log.error(msg, e);
+            throw new IdentityRecoveryException(msg, e);
+        }
     }
 
 
@@ -258,7 +301,7 @@ public class UserIdentityManagementAdminService {
 //        return userNameWithoutDomain;
 //    }
 
-    private String getLocaleOfUser(String tenantAwareUserName, String tenantDomain) {
+    private String getLocaleOfUser(String tenantAwareUserName, String tenantDomain) throws IdentityRecoveryServerException {
         User user = Utils.createUser(tenantAwareUserName, tenantDomain);
         String locale = IdentityRecoveryConstants.LOCALE_EN_US;
         try {
@@ -271,6 +314,7 @@ public class UserIdentityManagementAdminService {
             String errorMsg = String.format("Error when retrieving the locale claim of user %s of %s domain.",
                     tenantAwareUserName, tenantDomain);
             log.error(errorMsg);
+            throw new IdentityRecoveryServerException(errorMsg, e);
         }
 
         return locale;

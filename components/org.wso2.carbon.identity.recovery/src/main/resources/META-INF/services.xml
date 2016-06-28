@@ -24,14 +24,20 @@
             org.wso2.carbon.identity.recovery.services.UserIdentityManagementAdminService
         </parameter>
 
+        <operation name="getChallengeQuestionsOfTenant">
+            <parameter name="AuthorizationAction" locked="true">/permission/admin/login</parameter>
+        </operation>
         <operation name="getChallengeQuestionsForUser">
         <parameter name="AuthorizationAction" locked="true">/permission/admin/login</parameter>
         </operation>
         <operation name="getChallengeQuestionsForLocale">
             <parameter name="AuthorizationAction" locked="true">/permission/admin/login</parameter>
         </operation>
-        <operation name="setChallengeQuestions">
+        <operation name="setChallengeQuestionsOfTenant">
             <parameter name="AuthorizationAction" locked="true">/permission/admin/login</parameter>
+        </operation>
+        <operation name="deleteChallengeQuestionsOfTenant">
+            <parameter name="AuthorizationAction" locked="true">/permission/admin/configure/security</parameter>
         </operation>
 		<operation name="getUserChallengeAnswers">
 			<parameter name="AuthorizationAction" locked="true">/permission/admin/login</parameter>

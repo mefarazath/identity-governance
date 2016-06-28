@@ -22,7 +22,7 @@ package org.wso2.carbon.identity.recovery;
 public class IdentityRecoveryConstants {
 
 
-    public static final String IDENTITY_MANAGEMENT_PATH = "/repository/components/org.wso2.carbon.identity.mgt";
+    public static final String IDENTITY_MANAGEMENT_PATH = "/identity";
     public static final String IDENTITY_MANAGEMENT_QUESTIONS = IDENTITY_MANAGEMENT_PATH + "/questionCollection";
     public static final String IDENTITY_MANAGEMENT_I18N_PATH = "/repository/components/identity";
     public static final String IDENTITY_I18N_QUESTIONS =

@@ -221,7 +221,7 @@ public class Utils {
 
         count = 0;
         for (String question : IdentityRecoveryConstants.Questions.SECRET_QUESTIONS_SET01_SIN) {
-            String setId = IdentityRecoveryConstants.WSO2CARBON_CLAIM_DIALECT + "/" + "challengeQuestion2";
+            String setId = IdentityRecoveryConstants.WSO2CARBON_CLAIM_DIALECT + "/" + "challengeQuestion1";
             String questionId = "question" + (++count);
             challengeQuestions.add(
                     new ChallengeQuestion(setId, questionId, question, IdentityRecoveryConstants.LOCALE_LK_LK));
@@ -244,6 +244,10 @@ public class Utils {
         user.setTenantDomain(tenantDomain);
 
         return user;
+    }
+
+    public String validateLocale(String locale) {
+        return null;
     }
 
 }

@@ -25,8 +25,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.base.IdentityException;
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.persistence.registry.RegistryResourceMgtService;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.recovery.internal.IdentityRecoveryServiceDataHolder;
 import org.wso2.carbon.identity.recovery.model.ChallengeQuestion;
@@ -34,7 +34,6 @@ import org.wso2.carbon.identity.recovery.model.UserChallengeAnswer;
 import org.wso2.carbon.identity.recovery.util.Utils;
 import org.wso2.carbon.registry.core.Collection;
 import org.wso2.carbon.registry.core.CollectionImpl;
-import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.RegistryConstants;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.ResourceImpl;
@@ -58,42 +57,43 @@ public class ChallengeQuestionManager {
     private static RegistryResourceMgtService resourceMgtService =
             IdentityRecoveryServiceDataHolder.getInstance().getResourceMgtService();
 
-    private static final String QUESTIONS_REGISTRY_BASE_PATH = IdentityRecoveryConstants.IDENTITY_MANAGEMENT_QUESTIONS;
+    private static final String QUESTIONS_BASE_PATH = IdentityRecoveryConstants.IDENTITY_MANAGEMENT_QUESTIONS;
 
 
-    /**
-     * // TODO remove this!!!
-     *
-     * @return
-     * @throws IdentityRecoveryException
-     */
-    public List<ChallengeQuestion> getAllChallengeQuestions(String tenantDomain) throws IdentityRecoveryException {
+    public List<ChallengeQuestion> getAllChallengeQuestions(String tenantDomain) throws IdentityRecoveryServerException {
 
-        List<ChallengeQuestion> questions = new ArrayList<>();
+        tenantDomain = validateTenantDomain(tenantDomain);
+        List<ChallengeQuestion> challengeQuestions = new ArrayList<>();
+
         try {
-            int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
-            Registry registry = IdentityRecoveryServiceDataHolder.getInstance().getRegistryService().
-                    getConfigSystemRegistry(tenantId);
-            if (registry.resourceExists(QUESTIONS_REGISTRY_BASE_PATH)) {
-                Collection collection = (Collection) registry.get(QUESTIONS_REGISTRY_BASE_PATH);
-                String[] children = collection.getChildren();
-                for (String child : children) {
-                    Resource resource = registry.get(child);
-                    String cquestion = resource.getProperty("question");
-                    String questionSetId = resource.getProperty("questionSetId");
-                    if (cquestion != null) {
-                        if (questionSetId != null) {
-                            ChallengeQuestion question = new ChallengeQuestion(cquestion, questionSetId);
-                            questions.add(question);
+            Resource questionCollection = resourceMgtService.getIdentityResource(QUESTIONS_BASE_PATH, tenantDomain);
+            if (questionCollection != null) {
+                Collection questionSetCollection = (Collection) resourceMgtService.getIdentityResource(
+                        QUESTIONS_BASE_PATH, tenantDomain);
+
+                for (String questionSetId : questionSetCollection.getChildren()) {
+                    Collection questionIdCollection =
+                            (Collection) resourceMgtService.getIdentityResource(questionSetId, tenantDomain);
+                    // iterate each question to find the one with correct locale
+                    for (String questionIdPath : questionIdCollection.getChildren()) {
+                        Collection questions =
+                                (Collection) resourceMgtService.getIdentityResource(questionIdPath, tenantDomain);
+                        for (String question : questions.getChildren()) {
+                            Resource resource = resourceMgtService.getIdentityResource(question, tenantDomain);
+                            if (resource != null) {
+                                challengeQuestions.add(createChallengeQuestion(resource));
+                            }
                         }
+
                     }
                 }
             }
+            return challengeQuestions;
         } catch (RegistryException e) {
             throw Utils.handleServerException(IdentityRecoveryConstants.ErrorMessages
                     .ERROR_CODE_REGISTRY_EXCEPTION_GET_CHALLENGE_QUESTIONS, null, e);
         }
-        return questions;
+
     }
 
 
@@ -113,13 +113,11 @@ public class ChallengeQuestionManager {
 
         List<ChallengeQuestion> questions = new ArrayList<>();
         try {
-            Resource questionCollection = resourceMgtService.getIdentityResource(
-                    QUESTIONS_REGISTRY_BASE_PATH, tenantDomain);
-
+            Resource questionCollection = resourceMgtService.getIdentityResource(QUESTIONS_BASE_PATH, tenantDomain);
             // check whether the base challenge question directory exists
             if (questionCollection != null) {
                 Collection questionSetCollection = (Collection) resourceMgtService.getIdentityResource(
-                        QUESTIONS_REGISTRY_BASE_PATH, tenantDomain);
+                        QUESTIONS_BASE_PATH, tenantDomain);
 
                 for (String questionSetId : questionSetCollection.getChildren()) {
                     Collection questionIdCollection = (Collection) resourceMgtService.
@@ -153,11 +151,16 @@ public class ChallengeQuestionManager {
 
         tenantDomain = validateTenantDomain(tenantDomain);
         Resource questionCollection = resourceMgtService.getIdentityResource
-                (QUESTIONS_REGISTRY_BASE_PATH, tenantDomain);
+                (QUESTIONS_BASE_PATH, tenantDomain);
 
-        // TODO do we clean up existing questions each time during startup
-        if (questionCollection != null) {
-            resourceMgtService.deleteIdentityResource(QUESTIONS_REGISTRY_BASE_PATH, tenantDomain);
+        // check whether we already have default questions.
+        boolean isDefaultAvailable = !getAllChallengeQuestions(tenantDomain).isEmpty();
+        if (isDefaultAvailable) {
+            if (log.isDebugEnabled()) {
+                log.debug("Default Challenge Questions already available.");
+            }
+            return;
+           // resourceMgtService.deleteIdentityResource(QUESTIONS_BASE_PATH, tenantDomain);
         }
 
         ChallengeQuestion[] questions = Utils.getDefaultChallengeQuestions();
@@ -179,30 +182,27 @@ public class ChallengeQuestionManager {
     public void addChallengeQuestions(ChallengeQuestion[] questions, String tenantDomain) throws IdentityRecoveryException {
         try {
             tenantDomain = validateTenantDomain(tenantDomain);
+
             // check whether registry path for question collection exists
             Resource challengeQuestionCollection =
-                    resourceMgtService.getIdentityResource(QUESTIONS_REGISTRY_BASE_PATH, tenantDomain);
+                    resourceMgtService.getIdentityResource(QUESTIONS_BASE_PATH, tenantDomain);
 
             // create the question collection if it does not exist
             if (challengeQuestionCollection == null) {
                 challengeQuestionCollection = new CollectionImpl();
                 resourceMgtService.
-                        putIdentityResource(challengeQuestionCollection, QUESTIONS_REGISTRY_BASE_PATH, tenantDomain);
+                        putIdentityResource(challengeQuestionCollection, QUESTIONS_BASE_PATH, tenantDomain);
             }
 
-            // TODO do we check whether a question with the same id exists in the path, if so do we replace it or leave it as it is
             for (ChallengeQuestion challengeQuestion : questions) {
-                String questionId = challengeQuestion.getQuestionId();
-                // question set id in the form of the claim uri like "http://wso2.org/claims/challengeQuestion1"
-                String questionSetIdUri = challengeQuestion.getQuestionSetId();
+                validateChallengeQuestionAttributes(challengeQuestion);
+
+                String questionPath = getQuestionPath(challengeQuestion);
                 String locale = challengeQuestion.getLocale();
 
                 // create a registry resource
                 Resource resource = createRegistryResource(challengeQuestion);
-                // write the resource the path
-                String questionSetDir = Utils.getChallengeSetDirFromUri(questionSetIdUri);
-                String resourcePath = getQuestionPath(questionSetDir, questionId);
-                resourceMgtService.putIdentityResource(resource, resourcePath, tenantDomain, locale);
+                resourceMgtService.putIdentityResource(resource, questionPath, tenantDomain, locale);
             }
 
         } catch (RegistryException | UnsupportedEncodingException e) {
@@ -210,6 +210,25 @@ public class ChallengeQuestionManager {
                     .ERROR_CODE_REGISTRY_EXCEPTION_SET_CHALLENGE_QUESTIONS, null, e);
         }
 
+    }
+
+
+    public void deleteChallengeQuestions(ChallengeQuestion[] challengeQuestions, String tenantDomain)
+            throws IdentityRecoveryException{
+        try {
+            tenantDomain = validateTenantDomain(tenantDomain);
+
+            for (ChallengeQuestion question : challengeQuestions) {
+                if (isChallengeQuestionExists(question, tenantDomain)) {
+                    String questionPath = getQuestionPath(question);
+                    String locale = question.getLocale();
+                    resourceMgtService.deleteIdentityResource(questionPath, tenantDomain, locale);
+                }
+            }
+        } catch (IdentityRuntimeException e) {
+            log.error("Error deleting challenge quesitons in " + tenantDomain );
+            throw new IdentityRecoveryException("Error when deleting challenge questions.", e);
+        }
     }
 
     /**
@@ -531,14 +550,13 @@ public class ChallengeQuestionManager {
     }
 
 
-    public boolean isChallengeQuestionExists(ChallengeQuestion challengeQuestion, String tenantDomain) {
-        String questionSetIdUri = challengeQuestion.getQuestionSetId();
-        String questionId = challengeQuestion.getQuestionId();
-        String locale = validateLocale(challengeQuestion.getLocale());
+    private boolean isChallengeQuestionExists(ChallengeQuestion challengeQuestion, String tenantDomain)
+            throws IdentityRecoveryClientException {
+        validateChallengeQuestionAttributes(challengeQuestion);
 
-        // derived directory name from the questionSetId claim URI
-        String questionSetDir = Utils.getChallengeSetDirFromUri(questionSetIdUri);
-        String questionPath = getQuestionPath(questionSetDir, questionId);
+        String locale = challengeQuestion.getLocale();
+        String questionPath = getQuestionPath(challengeQuestion);
+
         return (resourceMgtService.getIdentityResource(questionPath, tenantDomain, locale) != null);
     }
 
@@ -589,13 +607,15 @@ public class ChallengeQuestionManager {
         return resource;
     }
 
-    /**
-     * @param questionSetId
-     * @param questionId
-     * @return
-     */
-    private String getQuestionPath(String questionSetId, String questionId) {
-        return QUESTIONS_REGISTRY_BASE_PATH + RegistryConstants.PATH_SEPARATOR + questionSetId +
+    // get question path in the registry.
+    private String getQuestionPath(ChallengeQuestion challengeQuestion) {
+        // challenge set uri
+        String questionSetIdUri = challengeQuestion.getQuestionSetId();
+        String questionId = challengeQuestion.getQuestionId();
+
+        String questionSetId = Utils.getChallengeSetDirFromUri(questionSetIdUri);
+
+        return QUESTIONS_BASE_PATH + RegistryConstants.PATH_SEPARATOR + questionSetId +
                 RegistryConstants.PATH_SEPARATOR + questionId;
     }
 
@@ -683,6 +703,7 @@ public class ChallengeQuestionManager {
     }
 
     private String validateLocale(String locale) {
+        // TODO validate whether a valid locale
         return StringUtils.isBlank(locale) ? IdentityRecoveryConstants.LOCALE_EN_US : locale;
     }
 
@@ -691,6 +712,18 @@ public class ChallengeQuestionManager {
             throw Utils.handleClientException(
                     IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_INVALID_USER, "Invalid User Data provided.");
         }
+    }
+
+    private void validateChallengeQuestionAttributes(ChallengeQuestion challengeQuestion) throws IdentityRecoveryClientException {
+        // TODO validate for path traversal
+        if (StringUtils.isBlank(challengeQuestion.getQuestion()) ||
+                StringUtils.isBlank(challengeQuestion.getLocale()) ||
+                StringUtils.isBlank(challengeQuestion.getQuestionId()) ||
+                StringUtils.isBlank(challengeQuestion.getQuestionSetId())) {
+            throw new IdentityRecoveryClientException
+                    ("Invalid. Attributes of Challenge question to be set cannot be null.");
+        }
+
     }
 
 

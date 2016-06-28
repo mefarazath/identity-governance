@@ -23,11 +23,16 @@ import org.apache.axis2.AxisFault;
 import org.apache.axis2.client.Options;
 import org.apache.axis2.client.ServiceClient;
 import org.apache.axis2.context.ConfigurationContext;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.recovery.stub.UserIdentityManagementAdminServiceStub;
 import org.wso2.carbon.identity.recovery.stub.model.ChallengeQuestion;
 import org.wso2.carbon.identity.recovery.stub.model.UserChallengeAnswer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 
 /**
@@ -36,6 +41,11 @@ import org.wso2.carbon.identity.recovery.stub.model.UserChallengeAnswer;
 public class IdentityManagementAdminClient {
 
     public static final String CHALLENGE_QUESTION = "challenge.question";
+    public static final String CHALLENGE_QUESTION_UPDATE = "challenge.question.update";
+    public static final String CHALLENGE_QUESTION_DELETE = "challenge.question.delete";
+    public static final String CHALLENGE_QUESTION_SET_TEMP= "challenge.question.set.temp";
+
+
     protected static Log log = LogFactory.getLog(IdentityManagementAdminClient.class);
     protected UserIdentityManagementAdminServiceStub stub = null;
 
@@ -51,6 +61,17 @@ public class IdentityManagementAdminClient {
             handleException(e.getMessage(), e);
         }
     }
+
+    public ChallengeQuestion[] getChallengeQuestionsForTenant(String tenantDomain) throws AxisFault {
+
+        try {
+            return stub.getChallengeQuestionsOfTenant(tenantDomain);
+        } catch (Exception e) {
+            handleException(e.getMessage(), e);
+        }
+        return new ChallengeQuestion[0];
+    }
+
 
     public ChallengeQuestion[] getChallengeQuestionsForUser(String tenantAwareUserName) throws AxisFault {
 
@@ -78,7 +99,16 @@ public class IdentityManagementAdminClient {
     public void setChallengeQuestions(ChallengeQuestion[] challengeQuestions, String tenantDomain)
             throws AxisFault {
         try {
-            stub.setChallengeQuestions(challengeQuestions, tenantDomain);
+            stub.setChallengeQuestionsOfTenant(challengeQuestions, tenantDomain);
+        } catch (Exception e) {
+            handleException(e.getMessage(), e);
+        }
+    }
+
+    public void deleteChallengeQuestions(ChallengeQuestion[] challengeQuestions, String tenantDomain)
+            throws AxisFault {
+        try {
+            stub.deleteChallengeQuestionsOfTenant(challengeQuestions, tenantDomain);
         } catch (Exception e) {
             handleException(e.getMessage(), e);
         }
@@ -102,7 +132,6 @@ public class IdentityManagementAdminClient {
 
         return new UserChallengeAnswer[0];
     }
-
 
     private String[] handleException(String msg, Exception e) throws AxisFault {
         log.error(msg, e);
